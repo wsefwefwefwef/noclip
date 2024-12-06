@@ -1,0 +1,160 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local noclip = false
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = game.CoreGui
+
+-- Create Frame for better styling
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 90)  -- Adjusted size to accommodate destroy button
+frame.Position = UDim2.new(0.5, -110, 0, 50)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundTransparency = 0.2
+frame.BorderSizePixel = 0
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.Parent = screenGui
+
+-- Add UIGradient to the frame for a rainbow gradient background
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 127, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(75, 0, 130)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(148, 0, 211))
+}
+gradient.Rotation = 45
+gradient.Parent = frame
+
+-- Round corners
+local frameUICorner = Instance.new("UICorner")
+frameUICorner.CornerRadius = UDim.new(0.2, 0)
+frameUICorner.Parent = frame
+
+-- Create TextButton for noclip toggle
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 40)
+button.Position = UDim2.new(0.5, 0, 0.3, 0)
+button.Text = "Enable Noclip"
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 20
+button.BackgroundTransparency = 0.1
+button.BorderSizePixel = 0
+button.AnchorPoint = Vector2.new(0.5, 0.5)
+button.Parent = frame
+
+-- Round corners for the button
+local buttonUICorner = Instance.new("UICorner")
+buttonUICorner.CornerRadius = UDim.new(0.2, 0)
+buttonUICorner.Parent = button
+
+-- Create TextButton for destroy
+local destroyButton = Instance.new("TextButton")
+destroyButton.Size = UDim2.new(0, 200, 0, 30)
+destroyButton.Position = UDim2.new(0.5, 0, 0.75, 0)
+destroyButton.Text = "Destroy GUI"
+destroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+destroyButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+destroyButton.Font = Enum.Font.GothamBold
+destroyButton.TextSize = 18
+destroyButton.BackgroundTransparency = 0.1
+destroyButton.BorderSizePixel = 0
+destroyButton.AnchorPoint = Vector2.new(0.5, 0.5)
+destroyButton.Parent = frame
+
+-- Round corners for the destroy button
+local destroyButtonUICorner = Instance.new("UICorner")
+destroyButtonUICorner.CornerRadius = UDim.new(0.2, 0)
+destroyButtonUICorner.Parent = destroyButton
+
+-- Make the frame draggable
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        update(input)
+    end
+end)
+
+-- Function to toggle noclip state
+local function toggleNoclip()
+    noclip = not noclip
+    if noclip then
+        button.Text = "Disable Noclip"
+        print("Noclip enabled")
+    else
+        button.Text = "Enable Noclip"
+        print("Noclip disabled")
+    end
+    applyNoclip()
+end
+
+-- Function to apply noclip to the character
+local function applyNoclip()
+    if character then
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not noclip
+            end
+        end
+    end
+end
+
+-- Listen for button click to toggle noclip
+button.MouseButton1Click:Connect(function()
+    toggleNoclip()
+end)
+
+-- Listen for destroy button click to remove the GUI
+destroyButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Update character position if noclip is enabled
+game:GetService("RunService").Stepped:Connect(function()
+    applyNoclip()
+end)
+
+-- Handle character respawn
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    character:WaitForChild("HumanoidRootPart")
+    if noclip then
+        applyNoclip()
+    end
+end)
